@@ -1,0 +1,88 @@
+# =============================================================================
+# Internal Developer Portal — MkDocs configuration
+# =============================================================================
+# Rendered by `mkdocs build --strict` in the builder stage of the Dockerfile.
+# `font: false` is deliberate: the portal is internal and must not phone out to
+# a font CDN from an isolated network, so it uses the system font stack.
+
+site_name: CloudGuard Internal Developer Portal
+site_description: >-
+  Technical documentation, API specifications and the service catalog for
+  internal engineering teams.
+site_url: !ENV [PORTAL_SITE_URL, "https://portal.internal.example.com/"]
+site_author: CloudGuard Platform Team
+copyright: Internal use only — CloudGuard Platform Team
+
+use_directory_urls: true
+
+theme:
+  name: material
+  language: en
+  font: false
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Service catalog: services/index.md
+  - API specifications: api/index.md
+  - Runbooks: runbooks/index.md
+  - Contributing: contributing.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  # Material supplies the icon index/generator; without this the :material-*:
+  # icons in the landing page render as literal text.
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_css:
+  - assets/portal.css
+
+# Note: `strict` is a CLI flag, not a config key — a key here is an unrecognised
+# option and --strict would fail the build on that warning. The build stage
+# passes --strict on the command line instead.

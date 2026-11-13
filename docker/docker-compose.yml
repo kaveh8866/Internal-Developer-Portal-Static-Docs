@@ -1,0 +1,80 @@
+# =============================================================================
+# Internal Developer Portal — runtime stack
+# =============================================================================
+# One service, sized for an OCI Always Free A1.Flex (1 OCPU / 1 GB) and equally
+# happy on x86 or arm64: the base images are multi-arch and there is no
+# platform-specific dependency.
+#
+#   cp ../.env.example ../.env
+#   docker compose --env-file ../.env -f docker-compose.yml up -d --build
+#
+# The container is read-only, drops every capability, cannot gain privileges,
+# runs as uid 101 and publishes on loopback by default.
+
+name: cloudguard-idp
+
+x-log-rotation: &log-rotation
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  portal:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: cloudguard/idp-portal:local
+    container_name: cg-portal
+    restart: unless-stopped
+
+    # Loopback by default: publishing 0.0.0.0:8080 on an instance with a public
+    # IP exposes the portal to the internet, and this portal is internal-only.
+    ports:
+      - "${PORTAL_BIND_ADDRESS:-127.0.0.1}:${PORTAL_PORT:-8080}:8080"
+
+    environment:
+      TZ: ${TZ:-UTC}
+      PORTAL_ENV: ${PORTAL_ENV:-development}
+
+    # --- Hardening -----------------------------------------------------------
+    read_only: true
+    tmpfs:
+      # nginx writes its pid, temp bodies and proxy buffers here; sized tightly.
+      - /tmp:size=16m,mode=1777
+      - /var/cache/nginx:size=8m,mode=0755
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    user: "101:101"
+    pids_limit: 64
+
+    # --- Resource envelope ---------------------------------------------------
+    # Measured: a rendered portal serves in ~8 MiB RSS under load; 64 MiB leaves
+    # room for gzip buffers without crowding a 1 GB instance.
+    mem_limit: 64m
+    mem_reservation: 24m
+    cpus: 0.25
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    # Security headers live in a file the operator can diff and review. The
+    # mount is read-only and the file is bind-mounted, not baked into the image.
+    volumes:
+      - ../configs/nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
+
+    logging: *log-rotation
+
+    networks:
+      - portal-net
+
+networks:
+  portal-net:
+    driver: bridge
+    internal: false

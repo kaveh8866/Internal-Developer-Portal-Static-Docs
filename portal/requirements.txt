@@ -1,0 +1,8 @@
+# =============================================================================
+# Internal Developer Portal — build dependencies
+# =============================================================================
+# Pinned exactly: a docs site that builds differently on two days is a docs site
+# nobody trusts. Renovate/dependabot PRs are the intended way to move these.
+mkdocs==1.6.1
+mkdocs-material==9.5.44
+pymdown-extensions==10.12

@@ -1,0 +1,75 @@
+# =============================================================================
+# Internal Developer Portal — Git boundary
+# =============================================================================
+# Everything here stays local. The CloudGuard vault audit fails the zero-leak
+# check if a credential artefact in this list would ever be tracked.
+
+# --- Environment and secrets -------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+secrets/
+keys/
+rclone.conf
+credentials.json
+*service-account*.json
+
+# --- OpenTofu / Terraform ----------------------------------------------------
+.terraform/
+.terraform.lock.hcl.bak
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+crash.log
+crash.*.log
+tfplan
+*.tfplan
+
+# --- Build output and caches -------------------------------------------------
+# MkDocs writes the rendered site here; never publish a stale build.
+site/
+portal/site/
+.cache/
+.mkdocs/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Nginx / runtime scratch -------------------------------------------------
+docker/nginx/conf.d/local/
+*.pid
+*.swp
+
+# --- Logs and archives -------------------------------------------------------
+logs/
+*.log
+*.tar.gz
+*.tar
+*.zip
+*.dump
+
+# --- Local operator overrides ------------------------------------------------
+configs/local/
+configs/*.local.*
+docker/docker-compose.override.yml
+docker/docker-compose.*.local.yml
+
+# --- OS / editor noise -------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.code-workspace
