@@ -1,0 +1,176 @@
+# SECURITY_AUDIT — Stage 7 sign-off
+
+Audit date: 2026-11-13. Scope: the repository, the container image, and the
+running behaviour of the server. Findings below are from executed commands, not
+from reading configuration and assuming it works.
+
+**Verdict: no credential leak, no exposed source material, no server-version
+disclosure, and no writable surface in the runtime.** Two accepted risks are
+recorded in §6 — one is a deliberate design choice, the other is a deployment
+parameter that must be narrowed before any real use.
+
+---
+
+## 1. Zero-leak scan
+
+### Files on disk vs. files in Git
+
+| Artefact | Exists locally | Tracked | Ignored |
+| --- | --- | --- | --- |
+| `.env` | yes (local run config) | **no** | yes |
+| `terraform/terraform.tfvars` | yes (OPERATOR CONFIG) | **no** | yes |
+| `*.pem`, `*.key`, `*.p12`, `*.pfx` | none | — | rule present |
+| `id_rsa*`, `id_ed25519*` | none | — | rule present |
+| `rclone.conf`, `credentials.json` | none | — | rule present |
+| `*.tfstate` | removed after teardown | **no** | yes |
+
+Commands used, in order:
+
+```bash
+find . -path ./.git -prune -o \( -name "*.pem" -o -name "*.key" -o -name ".env" \
+     -o -name "*.tfvars" -o -name "id_ed25519*" \) -print
+git ls-files --error-unmatch <path>      # tracked?
+git check-ignore -q <path>               # ignored?
+```
+
+Result: **two** sensitive files exist on disk, both gitignored, neither tracked.
+A file that is ignored but untracked is the correct steady state; a file that is
+tracked is a leak regardless of `.gitignore`.
+
+### Secret signatures in tracked content
+
+```bash
+git grep -nIE "(BEGIN [A-Z ]*PRIVATE KEY|ssh-ed25519 AAAA[^ ]{24,}|\
+ocid1\.(tenancy|user)\.oc1\.[a-z0-9]{30,}|AKIA[0-9A-Z]{16}|\
+hooks\.slack\.com/services/[A-Za-z0-9/]{10,}|api[_-]?key\s*=\s*['\"][A-Za-z0-9]{16,})"
+```
+
+**Zero matches** in the 37 tracked files. The only near-misses are documented
+placeholders:
+
+- `terraform.tfvars.example` — `config_file_profile = "DEFAULT"` and commented
+  `fingerprint = "aa:bb:…"`, both obviously synthetic.
+- `MANUAL_PREREQS.md` — an example `~/.oci/config` block with `ocid1.user.oc1..xxxx`.
+- `.env.example` — 21 keys, every value non-empty and a placeholder.
+
+### `.gitignore` and `.env.example` are active, not decorative
+
+| Check | Result |
+| --- | --- |
+| Rules for `.env`, `*.tfstate`, `*.pem`, `*.key`, `site/` | **5 of 5 present** |
+| `.env.example` tracked | yes (1) |
+| `.env` tracked | **0** |
+| Empty values in `.env.example` | **0 of 21** |
+| Live-looking values in `.env.example` | **0** |
+
+`.env.example` carries the OCI block with placeholder OCIDs, an example
+`ssh-ed25519` key marked as a placeholder, and a `PORTAL_BASIC_AUTH_PASSWORD`
+that reads `replace-me-before-exposing`. None of it is usable.
+
+## 2. Container hardening (read back from `docker inspect`)
+
+| Control | Value |
+| --- | --- |
+| User | `101:101` — unprivileged Nginx, no root process in the container |
+| Read-only root filesystem | `true` |
+| Capabilities | `CapDrop: [ALL]` |
+| Privilege escalation | `no-new-privileges:true` |
+| PIDs limit | 64 |
+| Memory / CPU | 64 MiB / 0.25 CPU |
+| Writable paths | `/tmp` (16 m) and `/var/cache/nginx` (8 m) only, as tmpfs |
+
+There is no shell in the runtime image, no package manager, and no build
+toolchain: the Python stage is discarded.
+
+## 3. HTTP behaviour
+
+| Test | Result | Assessment |
+| --- | --- | --- |
+| `GET /` | 200 | — |
+| `HEAD /` | 200 | — |
+| `POST`, `PUT`, `DELETE`, `PATCH` | **405** | static server refuses mutation verbs |
+| `OPTIONS`, `TRACE` | **405** | no method enumeration; TRACE disabled |
+| `GET /.env` | **403** | credential file not served |
+| `GET /mkdocs.yml` | **403** | config not served |
+| `GET /contributing.md` | **403** | sources not served |
+| `GET /assets/` | **403** | directory listing disabled |
+| `GET /%2e%2e/mkdocs.yml` | **403** | encoded traversal blocked |
+| `GET /../etc/passwd` | 404 | normalised away by the client/server |
+| `Server` header | `nginx` | `server_tokens off` — no version |
+
+Headers on **error** responses, which is where header configuration usually
+breaks:
+
+| Response | CSP | `nosniff` |
+| --- | --- | --- |
+| 404 `/nope-xyz` | present | present |
+| 403 `/.env` | present | present |
+
+This matters because `error_page` internal redirects can drop server-level
+headers if a location declares its own `add_header`. It does not here.
+
+## 4. Content security policy review
+
+```text
+default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline';
+script-src 'self' 'unsafe-inline'; connect-src 'self'
+```
+
+`'unsafe-inline'` for `script-src` and `style-src` is required by MkDocs
+Material's palette toggle and inline styles. That is the one weakening in the
+policy, and it is recorded rather than hidden. There is no `unsafe-eval`, no
+remote origin, and `frame-ancestors 'none'` plus `X-Frame-Options: DENY` prevent
+framing.
+
+A stricter alternative exists — a hash-based policy for Material's single inline
+script — but it breaks on every theme upgrade. For an internal, static,
+first-party-content site the trade is acceptable; for a portal accepting
+user-generated HTML it would not be.
+
+## 5. Supply chain and build
+
+| Item | State |
+| --- | --- |
+| Base images | `python:3.12-alpine`, `nginxinc/nginx-unprivileged:1.27-alpine` |
+| Python dependencies | **pinned exactly** (`mkdocs==1.6.1`, `mkdocs-material==9.5.44`, `pymdown-extensions==10.12`) |
+| Build-tool exposure | none — the Python stage is not shipped |
+| Nginx config review | one server block, no `proxy_pass`, no CGI, no `include` of user paths |
+| Image provenance | built locally; `.terraform.lock.hcl` pins the OCI provider |
+
+Dependency pins are deliberate: an unpinned docs toolchain means a build that can
+change behaviour without a commit.
+
+## 6. Accepted risks
+
+| Risk | Severity | Status |
+| --- | --- | --- |
+| **`web_allowed_cidr` was `0.0.0.0/0` during the Stage 5 run** | **High for an internal tool** | Accepted **only** for verification, and remediated by teardown. An internal portal must be restricted to the office/VPN range, or fronted by the proxy with 80 closed. Documented in README and `MANUAL_PREREQS.md` §5. |
+| **No TLS terminator** | Medium | The container serves plain HTTP on 8080; 443 is reserved for the proxy. HSTS is intentionally **not** set, so browsers are never pinned to a scheme this container cannot serve. |
+| `'unsafe-inline'` in CSP | Low | Required by the theme; no remote origins permitted. See §4. |
+| No authentication in the container | Low (by placement) | Access control belongs at the proxy or allow-list. The container is not the security boundary for identity. |
+
+## 7. What this audit does **not** cover
+
+- **Penetration testing.** No fuzzing, no automated scanner, no exploit attempt.
+- **Dependency CVE scanning.** Pins are fixed, but no `pip-audit`/Trivy run was
+  performed; that is a Stage 8 release-gate candidate.
+- **TLS configuration.** There is no TLS listener to assess.
+- **Multi-tenant isolation.** The portal is single-tenant by design — no user
+  accounts, no writes, no per-user data.
+- **Live environment.** All runtime checks were performed on the local container;
+  Stage 5 reproduced a subset on the OCI instance and Stage 6 destroyed it.
+
+## 8. Sign-off
+
+| Requirement | Status |
+| --- | --- |
+| No private keys in the tree | ✅ none present |
+| No tracked secrets | ✅ 0 of 37 files |
+| `.gitignore` boundary active | ✅ verified per path |
+| `.env.example` placeholder-only | ✅ 21 keys, no live values |
+| Runtime cannot escalate or write | ✅ uid 101, `cap_drop: ALL`, read-only |
+| Sources and metadata not served | ✅ 403 on `.md`, `.yml`, dotfiles |
+| Header coverage including errors | ✅ CSP + `nosniff` on 200/403/404 |
+
+Signed off for packaging (Stage 8) on the basis of the evidence above.

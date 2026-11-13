@@ -26,9 +26,9 @@ this repository; the outputs quoted are real, not illustrative.
 | 2 — OpenTofu modules | 7 | ✅ written, plan 6 to add |
 | 3 — this guide + `MANUAL_PREREQS.md` | — | ✅ complete |
 | 4 — local drills (routing, headers, assets) | 0–6 | ✅ verified 2026-11-13 — see `TEST_REPORT.md` |
-| 5 — live OCI deploy + verification | 8 | ⬜ not started |
+| 5 — live OCI deploy + verification | 8 | ✅ verified 2026-11-13 — `TEST_REPORT.md` §11 (environment since destroyed) |
 | 6 — teardown, zero resources | 9 | ✅ verified 2026-11-13 — see `TEARDOWN_REPORT.md` |
-| 7 — security audit, cost table, final README | — | ⬜ |
+| 7 — security audit, cost table, final README | — | ✅ verified 2026-11-13 — `SECURITY_AUDIT.md` |
 | 8 — release + vault certification | 10 | ⬜ |
 
 ---
