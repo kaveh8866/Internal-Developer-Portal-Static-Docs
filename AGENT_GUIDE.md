@@ -25,7 +25,7 @@ this repository; the outputs quoted are real, not illustrative.
 | 1 — scaffold, Docker, Nginx, Git boundary | 0–1 | ✅ complete |
 | 2 — OpenTofu modules | 7 | ✅ written, plan 6 to add |
 | 3 — this guide + `MANUAL_PREREQS.md` | — | ✅ complete |
-| 4 — local drills (routing, headers, assets) | 0–6 | 🟡 commands verified, not yet a signed report |
+| 4 — local drills (routing, headers, assets) | 0–6 | ✅ verified 2026-11-13 — see `TEST_REPORT.md` |
 | 5 — live OCI deploy + verification | 8 | ⬜ not started |
 | 6 — teardown, zero resources | 9 | ⬜ |
 | 7 — security audit, cost table, final README | — | ⬜ |
@@ -206,7 +206,9 @@ dependency in a project whose whole selling point is having none.
 
 ## Phase 6 — Local drills before any deployment
 
-Run these and record the results; Stage 4 is not complete without them.
+Run these and record the results; Stage 4 is not complete without them. The
+current numbers live in `TEST_REPORT.md` — re-run them after any change to the
+Dockerfile, the server block or the content tree.
 
 1. `docker inspect cg-portal` → `ReadonlyRootfs: true`, `CapDrop: [ALL]`, `User: 101:101`, `no-new-privileges`.
 2. `docker stats --no-stream` → steady state well under the 64 MiB limit.

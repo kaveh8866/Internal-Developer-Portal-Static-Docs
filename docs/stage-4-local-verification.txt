@@ -1,0 +1,107 @@
+Internal Developer Portal — Stage 4 local verification (raw transcript)
+=======================================================================
+Date:      2026-11-13
+Host:      Windows 11 / MINGW64_NT-10.0-26300 / x86_64 / 16 CPU
+Engine:    Docker 29.8.1 (Docker Desktop), Compose 5.5.1
+Image:     cloudguard/idp-portal:local (77 MB)
+Site:      55 files under /usr/share/nginx/html
+Port:      127.0.0.1:8081 -> 8080/tcp (8080 already in use on this machine)
+Commit:    9c12f6b (working tree clean apart from the local .env)
+
+No credential or internal hostname appears in this transcript.
+
+1. Stack
+-------
+    docker compose --env-file ../.env -f docker-compose.yml up -d
+      Container cg-portal  Started
+    docker compose ... ps
+      cg-portal | Up 8 seconds (healthy) | 127.0.0.1:8081->8080/tcp
+    warm-cache rebuild: 2 s
+    docker compose config -q: exit 0
+
+2. Strict build is real
+-----------------------
+    echo '[probe](../does-not-exist.md)' >> portal/docs/contributing.md
+    docker compose ... build
+      WARNING - Doc file 'contributing.md' contains a link '../does-not-exist.md',
+                but the target is not found among documentation files.
+      Aborted with 1 warnings in strict mode!
+      ERROR: process "mkdocs build --strict ..." exit code: 1
+    git checkout -- portal/docs/contributing.md
+    rebuild -> Image cloudguard/idp-portal:local Built
+
+3. Page matrix
+--------------
+    /                              200
+    /services/                     200
+    /api/                          200
+    /runbooks/                     200
+    /contributing/                 200
+    /services                      301   Location: /services/
+    /assets/portal.css             200   Content-Type: text/css
+    /assets/logo.svg               200
+    /search/search_index.json      200   23 documents, valid JSON
+    /healthz                       200   body "ok"
+    /nope-xyz                      404   rendered 404.html
+    /.env                          403
+    /mkdocs.yml                    403
+    /contributing.md               403
+
+    index title: CloudGuard Internal Developer Portal
+    runbook anchor present: id="rotate-signing-keys"
+    catalogue tables: 10 <tr>
+
+4. Headers on /
+---------------
+    HTTP/1.1 200 OK
+    Content-Type: text/html; charset=utf-8
+    Content-Length: 17488
+    X-Content-Type-Options: nosniff
+    X-Frame-Options: DENY
+    Referrer-Policy: strict-origin-when-cross-origin
+    Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+    Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'self';
+      frame-ancestors 'none'; img-src 'self' data:; font-src 'self' data:;
+      style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'
+
+    gzip: plain 17488 B -> 4663 B (Content-Encoding: gzip)
+    /assets/portal.css: Cache-Control max-age=604800 AND X-Content-Type-Options nosniff
+      (proves location-level caching did not strip the security headers)
+
+5. Hardening (docker inspect)
+-----------------------------
+    readonly=true capdrop=[ALL] user=101:101
+    secopt=[no-new-privileges:true] pids=64
+    mem=67108864 (64 MiB) cpus=250000000 (0.25 CPU)
+
+6. Restart
+----------
+    docker restart cg-portal -> after 6 s: / = 200, /healthz = ok
+
+7. Low-spec load (deployment target is 1 OCPU / 1 GB)
+-----------------------------------------------------
+    docker update --cpus 0.1 --memory 48m cg-portal
+    limits: 100000000 nanocpus, 50331648 bytes
+    200 sequential GET / :
+      codes: 200 200   (200/200 succeeded, zero 5xx)
+      wall:  9765 ms (~49 ms/request, curl startup dominated)
+    docker stats: mem=12.71MiB / 48MiB  cpu=0.00%  pids=17
+
+8. Failure surfacing
+--------------------
+    docker stop cg-portal -> curl exit 7, HTTP 000 (connection refused)
+    docker start cg-portal -> / = 200, /healthz = ok
+
+9. Log hygiene
+--------------
+    total lines: 475
+    error-level: 1
+      2026/11/13 13:18:56 [error] access forbidden by rule,
+        request: "GET /.env HTTP/1.1"
+    (that line is the deliberate 403 probe from §3 — no unexpected errors)
+
+10. Not covered here
+--------------------
+    ARM/aarch64 build · TLS/443 · web_allowed_cidr enforcement in OCI ·
+    cold build time · visual/browser rendering · concurrent load.
+    Those belong to Stage 5 or were explicitly out of scope; see TEST_REPORT.md §9.
