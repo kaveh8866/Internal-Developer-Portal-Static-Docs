@@ -5,10 +5,11 @@ Material into static HTML, served by a hardened unprivileged Nginx. Built for
 engineering teams that need one trustworthy place for technical docs, API specs
 and the service catalog — without running a wiki, a database, or a CMS.
 
-**Status: Stage 2 written.** The portal builds and serves locally (Stage 1),
-and the OCI infrastructure is written and `tofu plan`-verified (`6 to add`) but
-**not applied** — nothing exists in the cloud yet. See the roadmap below for
-what is verified and what is not.
+**Status: Stage 3 complete.** The portal builds and serves locally (Stage 1),
+the OCI infrastructure is written and `tofu plan`-verified (Stage 2, `6 to add`),
+and the operator + agent playbooks are written against commands that were
+actually run (Stage 3). **Nothing is applied in the cloud** — no VCN, no
+instance, no URL. See the roadmap for what is verified and what is not.
 
 | | |
 | --- | --- |
@@ -102,7 +103,7 @@ layout. Compose lives in `docker/` next to the server block it references.
 | --- | --- | --- |
 | **1** | Scaffold, Docker, Nginx, strict Git boundary, vault metadata | ✅ complete |
 | **2** | OpenTofu: VCN, A1.Flex compute, security list (8080 closed) | ✅ written, `validate` + `plan` clean, not applied |
-| **3** | `AGENT_GUIDE.md` phases + operator prerequisites | 🟡 `AGENT_GUIDE.md` drafted |
+| **3** | `AGENT_GUIDE.md` phases + operator prerequisites | ✅ complete |
 | **4** | Local drills: build, headers, 404/toxic paths, low-spec behaviour | ⬜ |
 | **5** | Live OCI deployment and verification | ⬜ |
 | **6** | Teardown to zero burn rate | ⬜ |
@@ -113,8 +114,9 @@ layout. Compose lives in `docker/` next to the server block it references.
 
 | Document | Audience |
 | --- | --- |
-| [`AGENT_GUIDE.md`](AGENT_GUIDE.md) | Coding agents: phases, stop conditions, hard limits |
-| [`terraform/README.md`](terraform/README.md) | The reserved IaC layer and its planned inputs |
+| [`MANUAL_PREREQS.md`](MANUAL_PREREQS.md) | Human operator: accounts, credentials, parameters, pre-flight and verification checklists |
+| [`AGENT_GUIDE.md`](AGENT_GUIDE.md) | Coding agents: phases 0–10, verified commands, hard limits, troubleshooting |
+| [`terraform/README.md`](terraform/README.md) | IaC layout, ingress contract, AWS/GCP mapping, capacity constraints |
 | [`portal/docs/contributing.md`](portal/docs/contributing.md) | Engineers writing content for the portal |
 
 ## License
