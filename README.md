@@ -5,6 +5,7 @@
 ![site](https://img.shields.io/badge/site-MkDocs%20Material%209.5-526CFE)
 ![iac](https://img.shields.io/badge/IaC-OpenTofu%20%E2%89%A5%201.6-FFDA18)
 ![verified](https://img.shields.io/badge/verified-OCI%20eu--frankfurt--1-FF5C39)
+![license](https://img.shields.io/badge/license-MIT-green)
 
 A containerized internal developer portal: Markdown sources rendered by MkDocs
 Material into static HTML at image build time, served by a hardened unprivileged
@@ -354,4 +355,10 @@ the column that actually decides the platform.
 
 ## License
 
-MIT — added at Stage 8. Copyright (c) 2026 Mostafa Kaveh.
+Released under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Mostafa Kaveh.
+
+You may use, modify and redistribute this project, including commercially, provided
+the copyright notice and permission notice are retained. The software is provided
+as is, without warranty of any kind — see [`LICENSE`](LICENSE) for the full text.
