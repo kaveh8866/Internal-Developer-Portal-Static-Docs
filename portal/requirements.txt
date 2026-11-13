@@ -3,6 +3,14 @@
 # =============================================================================
 # Pinned exactly: a docs site that builds differently on two days is a docs site
 # nobody trusts. Renovate/dependabot PRs are the intended way to move these.
+#
+# Security floor (2026-11-13, Dependabot alerts #1-#5):
+#   mkdocs-material   >= 9.7.7   GHSA-xvg9-69gf-fjrf  DOM XSS in search suggestions
+#   pymdown-extensions >= 11.0.1 GHSA-gm37-52c6-37mw  ReDoS in caret/tilde/betterem/magiclink
+#                                GHSA-9xwg-3r6f-jcx2  path traversal in b64 extension
+#                                GHSA-62q4-447f-wv8h  snippets sibling-prefix bypass
+#                                GHSA-r6h4-mm7h-8pmq  ReDoS in figure caption
+# Do not lower these pins without re-reading the advisories.
 mkdocs==1.6.1
-mkdocs-material==9.5.44
-pymdown-extensions==10.12
+mkdocs-material==9.8.1
+pymdown-extensions==13.1

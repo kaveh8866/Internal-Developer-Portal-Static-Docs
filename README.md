@@ -2,7 +2,7 @@
 
 ![lifecycle](https://img.shields.io/badge/lifecycle-stages%201--7%20of%208-3f51b5)
 ![container](https://img.shields.io/badge/container-nginx%20unprivileged%20%C2%B7%20uid%20101-2496ED?logo=nginx&logoColor=white)
-![site](https://img.shields.io/badge/site-MkDocs%20Material%209.5-526CFE)
+![site](https://img.shields.io/badge/site-MkDocs%20Material%209.8-526CFE)
 ![iac](https://img.shields.io/badge/IaC-OpenTofu%20%E2%89%A5%201.6-FFDA18)
 ![verified](https://img.shields.io/badge/verified-OCI%20eu--frankfurt--1-FF5C39)
 [![release](https://img.shields.io/badge/release-v1.0.0-blue)](https://github.com/kaveh8866/Internal-Developer-Portal-Static-Docs/releases/tag/v1.0.0)
@@ -155,7 +155,7 @@ Teardown: `cd terraform && tofu destroy -auto-approve`.
 ```text
 portal/
 ├── mkdocs.yml            # nav, theme, extensions
-├── requirements.txt      # pinned: mkdocs 1.6.1, material 9.5.44, pymdown 10.12
+├── requirements.txt      # pinned: mkdocs 1.6.1, material 9.8.1, pymdown 13.1
 └── docs/
     ├── index.md          # landing page
     ├── contributing.md   # how to write for this portal
@@ -234,6 +234,7 @@ Full sign-off: [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md).
 | Banner | `Server: nginx` with no version |
 | Headers on errors | CSP and `nosniff` present on 404 and 403, not only on 200 |
 | Logging | json-file, 10 MiB × 2; only error-level entries are the probe attempts |
+| Dependency advisories | 5 Dependabot alerts (1 high) fixed in v1.0.1 by pinning Material 9.8.1 / pymdown 13.1; `--strict` rebuild verified |
 
 **Known gap:** no TLS terminator. The container speaks HTTP; 443 is reserved for
 the proxy. HSTS is deliberately absent so a browser is never pinned to a scheme

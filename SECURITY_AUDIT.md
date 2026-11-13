@@ -133,13 +133,61 @@ user-generated HTML it would not be.
 | Item | State |
 | --- | --- |
 | Base images | `python:3.12-alpine`, `nginxinc/nginx-unprivileged:1.27-alpine` |
-| Python dependencies | **pinned exactly** (`mkdocs==1.6.1`, `mkdocs-material==9.5.44`, `pymdown-extensions==10.12`) |
+| Python dependencies | **pinned exactly** (`mkdocs==1.6.1`, `mkdocs-material==9.8.1`, `pymdown-extensions==13.1`) — raised from 9.5.44 / 10.12 on 2026-11-13, see §5a |
 | Build-tool exposure | none — the Python stage is not shipped |
 | Nginx config review | one server block, no `proxy_pass`, no CGI, no `include` of user paths |
 | Image provenance | built locally; `.terraform.lock.hcl` pins the OCI provider |
 
 Dependency pins are deliberate: an unpinned docs toolchain means a build that can
 change behaviour without a commit.
+
+### 5a. Dependency advisories (Dependabot, resolved in v1.0.1)
+
+GitHub reported **5 open alerts** on the default branch after the v1.0.0 push:
+1 high, 3 moderate, 1 low. All five were in **build-stage Python packages**, not
+in the shipped runtime image — but they still count: the build is the supply
+chain, and a compromised or slow build is a real defect.
+
+| # | Severity | Package | Advisory | Issue | Fixed in |
+| --- | --- | --- | --- | --- | --- |
+| 1 | LOW | pymdown-extensions | GHSA-r6h4-mm7h-8pmq / CVE-2025-68142 | ReDoS in the figure-capture extension | 10.16.1 |
+| 2 | MEDIUM | pymdown-extensions | GHSA-62q4-447f-wv8h / CVE-2026-46338 | `snippets` sibling-prefix path traversal bypass of `restrict_base_path` | 10.21.3 |
+| 3 | MEDIUM | pymdown-extensions | GHSA-9xwg-3r6f-jcx2 / CVE-2026-61632 | Path traversal in the `b64` extension lets `<img src>` read files outside `base_path` | 11.0.0 |
+| 4 | **HIGH** | pymdown-extensions | GHSA-gm37-52c6-37mw / CVE-2026-67422 | Exponential-backtracking ReDoS in caret, tilde, betterem and magiclink inline processors | 11.0.1 |
+| 5 | MEDIUM | mkdocs-material | GHSA-xvg9-69gf-fjrf / CVE-2026-73295 | DOM XSS in search suggestions via a query parameter | 9.7.7 |
+
+**Resolution:** the single floor that satisfies all five is
+`pymdown-extensions>=11.0.1` and `mkdocs-material>=9.7.7`. Pins moved to the
+current releases — `mkdocs-material==9.8.1` and `pymdown-extensions==13.1` — with
+`mkdocs==1.6.1` unchanged (no advisory, and `9.8.1` requires `mkdocs>=1.6,<2`).
+
+The security floor is now also written into `portal/requirements.txt` as a
+comment block, so lowering a pin requires deliberately deleting the reason.
+
+**Why the site was not exposed by #5:** the DOM XSS lives in the search
+suggestions widget, which renders client-side from `search_index.json`. Content
+in this portal is first-party and authored in Git, so there is no untrusted input
+path — but the fix is free, and "we trust our own content" is not a security
+control. The CSP would also have blocked a naive exfiltration attempt.
+
+**Rebuild evidence (this is the part that matters):**
+
+```text
+docker build --no-cache --progress=plain   # builder stage, no cached layers
+  Successfully installed ... mkdocs-1.6.1 mkdocs-material-9.8.1
+                            pymdown-extensions-13.1 markdown-3.11.3 ...
+  [builder 7/7] RUN mkdocs build --strict --clean --site-dir /site   → exit 0
+```
+
+`--strict` treats warnings as errors, so a dead link, a missing nav entry or a
+broken extension would have failed the image build. It passed with no warnings.
+
+Runtime re-verified after the bump: `/`, `/services/`, `/api/`, `/runbooks/`,
+`/contributing/` → 200; `search_index.json` → 200 with **23 entries** and a
+`config` block (the widget's data contract survived the theme upgrade); real
+hashed asset `assets/stylesheets/main.57a0d79d.min.css` → 200 (23,392 B gzip);
+`/.env` and `/mkdocs.yml` still 403; CSP, `nosniff`, `X-Frame-Options: DENY`
+still present; `Server: nginx` still version-free; container 13.2 MiB / 64 MiB.
 
 ## 6. Accepted risks
 
@@ -153,8 +201,11 @@ change behaviour without a commit.
 ## 7. What this audit does **not** cover
 
 - **Penetration testing.** No fuzzing, no automated scanner, no exploit attempt.
-- **Dependency CVE scanning.** Pins are fixed, but no `pip-audit`/Trivy run was
-  performed; that is a Stage 8 release-gate candidate.
+- **Dependency CVE scanning is now advisory-driven, not exhaustive.** The five
+  Dependabot alerts were pulled through the GitHub API and fixed (§5a), and the
+  theme's transitive dependencies (Markdown 3.11.3, Jinja2 3.1.6, requests 2.34.2)
+  resolved clean on rebuild. No `pip-audit` or Trivy run has been performed, and
+  the container base images are not scanned — a CI job should own both.
 - **TLS configuration.** There is no TLS listener to assess.
 - **Multi-tenant isolation.** The portal is single-tenant by design — no user
   accounts, no writes, no per-user data.
@@ -165,6 +216,7 @@ change behaviour without a commit.
 
 | Requirement | Status |
 | --- | --- |
+| Dependency advisories resolved | ✅ 5/5 fixed in v1.0.1, strict rebuild verified |
 | No private keys in the tree | ✅ none present |
 | No tracked secrets | ✅ 0 of 37 files |
 | `.gitignore` boundary active | ✅ verified per path |
