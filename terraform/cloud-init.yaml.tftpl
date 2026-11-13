@@ -1,0 +1,42 @@
+#cloud-config
+# =============================================================================
+# Internal Developer Portal — first-boot bootstrap (${project_name})
+# =============================================================================
+# Prepares the host and stops there. No credential, no repository URL, no
+# content: the portal stack is cloned and built over SSH, so a leaked user-data
+# blob reveals nothing about the internal documentation it will serve.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - git
+
+write_files:
+  - path: /etc/motd
+    content: |
+      ${project_name} — portal host
+      Deploy the portal:
+        git clone https://github.com/kaveh8866/Internal-Developer-Portal-Static-Docs.git
+        cd Internal-Developer-Portal-Static-Docs && cp .env.example .env
+        # set PORTAL_BIND_ADDRESS=0.0.0.0 and PORTAL_PORT=80
+        docker compose --env-file .env -f docker/docker-compose.yml up -d --build
+    permissions: "0644"
+
+runcmd:
+  # Docker Engine + Compose plugin from the official convenience script, so the
+  # host keeps receiving security updates through `apt upgrade`.
+  - curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+  - sh /tmp/get-docker.sh
+  - usermod -aG docker ubuntu
+  - systemctl enable --now docker
+  - mkdir -p /opt/${project_name}
+  - chown ubuntu:ubuntu /opt/${project_name}
+
+  # Unattended security upgrades: this host is intentionally low-touch.
+  - apt-get install -y unattended-upgrades
+  - dpkg-reconfigure -f noninteractive unattended-upgrades
+
+final_message: "${project_name} host ready after $UPTIME seconds"

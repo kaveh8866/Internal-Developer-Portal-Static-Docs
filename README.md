@@ -5,9 +5,10 @@ Material into static HTML, served by a hardened unprivileged Nginx. Built for
 engineering teams that need one trustworthy place for technical docs, API specs
 and the service catalog — without running a wiki, a database, or a CMS.
 
-**Status: Stage 1 complete (scaffold).** The stack builds and serves locally;
-nothing has been provisioned in the cloud yet. See the roadmap below for what
-is verified and what is not.
+**Status: Stage 2 written.** The portal builds and serves locally (Stage 1),
+and the OCI infrastructure is written and `tofu plan`-verified (`6 to add`) but
+**not applied** — nothing exists in the cloud yet. See the roadmap below for
+what is verified and what is not.
 
 | | |
 | --- | --- |
@@ -15,7 +16,7 @@ is verified and what is not.
 | Web server | `nginxinc/nginx-unprivileged:1.27-alpine`, uid 101, port 8080 |
 | Container | read-only rootfs, `cap_drop: ALL`, `no-new-privileges`, 64 MiB / 0.25 CPU |
 | Hosting target | OCI Always Free `VM.Standard.A1.Flex` (1 OCPU / 1 GB), arm64 or x86 |
-| Provisioning | `terraform/` reserved for Stage 2 — no `.tf` files yet |
+| Provisioning | OpenTofu modules: VCN + A1.Flex instance + security list (22/80/443) |
 
 ---
 
@@ -100,7 +101,7 @@ layout. Compose lives in `docker/` next to the server block it references.
 | Stage | Scope | State |
 | --- | --- | --- |
 | **1** | Scaffold, Docker, Nginx, strict Git boundary, vault metadata | ✅ complete |
-| **2** | OpenTofu: VCN, A1.Flex compute, security list (8080 closed) | ⬜ reserved, no `.tf` yet |
+| **2** | OpenTofu: VCN, A1.Flex compute, security list (8080 closed) | ✅ written, `validate` + `plan` clean, not applied |
 | **3** | `AGENT_GUIDE.md` phases + operator prerequisites | 🟡 `AGENT_GUIDE.md` drafted |
 | **4** | Local drills: build, headers, 404/toxic paths, low-spec behaviour | ⬜ |
 | **5** | Live OCI deployment and verification | ⬜ |

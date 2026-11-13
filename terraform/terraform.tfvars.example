@@ -1,0 +1,51 @@
+# =============================================================================
+# Internal Developer Portal — terraform.tfvars template (OCI)
+# =============================================================================
+# Copy to `terraform.tfvars` (gitignored), fill in your tenancy values, then:
+#   tofu init && tofu fmt -recursive && tofu validate && tofu plan && tofu apply
+#
+# Never commit the filled file: it carries your tenancy/user OCIDs.
+
+# --- Identity ----------------------------------------------------------------
+tenancy_ocid     = "your_tenancy_ocid_here"
+compartment_ocid = "your_compartment_ocid_here"
+region           = "eu-frankfurt-1"
+
+# Auth path 1 (recommended): a profile in ~/.oci/config.
+config_file_profile = "DEFAULT"
+
+# Auth path 2: inline API-key values instead of a profile.
+# user_ocid        = "your_user_ocid_here"
+# fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+# private_key_path = "C:/Users/you/.oci/oci_api_key.pem"
+
+# --- Access ------------------------------------------------------------------
+# Content of your PUBLIC key (one line starting with ssh-ed25519), not a path.
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your-key-comment"
+
+# Your egress IP rather than the open internet: `curl -s https://ifconfig.me`
+ssh_allowed_cidr = "203.0.113.10/32"
+
+# 80/443 source. Narrow this to the office or VPN range for an internal-only
+# portal — the default in variables.tf is open so a fresh deploy is reachable.
+web_allowed_cidr = "0.0.0.0/0"
+
+# --- Network -----------------------------------------------------------------
+vcn_cidr     = "10.5.0.0/16"
+subnet_cidr  = "10.5.1.0/24"
+
+# --- Sizing ------------------------------------------------------------------
+# The portal container is capped at 64 MB / 0.25 CPU, so this is the smallest
+# Always Free A1 shape that still runs Ubuntu + Docker + an image build.
+instance_shape       = "VM.Standard.A1.Flex"
+instance_ocpus       = 1
+instance_memory_gbs  = 1
+boot_volume_size_gbs = 50
+
+# Leave null to take the first availability domain; pin AD-2 if A1 capacity is
+# scarce in your region ("Out of host capacity").
+# availability_domain = "example:EU-FRANKFURT-1-AD-2"
+
+# --- Naming ------------------------------------------------------------------
+project_name = "cloudguard-idp"
+environment  = "dev"

@@ -11,9 +11,10 @@ Codebuff) working in this repository.
   off. Any other platform is a documented port, not a certified one — never
   describe this project as "AWS-verified" or "Vercel-verified".
 - **Current status:** Stage 1 (scaffold) is complete and the stack builds and
-  serves locally. Stage 2 onward is not started: `terraform/` holds no `.tf`
-  files, no instance exists, and no vault certification has been earned yet.
-  Verify before claiming anything — see the phase map.
+  serves locally. Stage 2 is written and statically verified — `tofu validate`
+  passes and `tofu plan` reports `6 to add` — but **nothing has been applied**:
+  no VCN, no instance, no reachable portal. Verify before claiming anything —
+  see the phase map.
 - **Git boundary:** `.env`, `terraform.tfvars`, `*.tfstate`, `*.pem`, build
   output (`site/`) and local overrides never enter Git. The `.gitignore` blocks
   them; a blocked file that was copied into the tree is still a leak.
@@ -21,7 +22,7 @@ Codebuff) working in this repository.
 | Project stage | Playbook phases | State |
 | --- | --- | --- |
 | Stage 1 — scaffold, Docker, Nginx, Git boundary | 0, 1 | ✅ complete |
-| Stage 2 — OpenTofu provisioning | 2 | ⬜ reserved only |
+| Stage 2 — OpenTofu provisioning | 2 | ✅ written, plan 6 to add (not applied) |
 | Stage 3 — this guide + prerequisites | — | 🟡 guide drafted |
 | Stage 4 — local drills (headers, 404, low-spec) | 3, 4 | ⬜ |
 | Stage 5 — live OCI deploy + verification | 5 | ⬜ |
@@ -76,10 +77,18 @@ Success criteria: `cg-portal` reports `healthy`, and `curl -sI` on `/` returns
 
 ## Phase 2 — Provision (OCI)
 
-Not written yet. When it lands it follows the portfolio convention: modules for
-network and compute, `terraform.tfvars` gitignored, `terraform.tfvars.example`
-with placeholders, AD-2 preferred because AD-1 frequently reports
-`Out of host capacity` for A1 shapes.
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars   # gitignored; fill in the tenancy
+tofu init && tofu fmt -recursive -check && tofu validate
+tofu plan                                      # expect: Plan: 6 to add
+tofu apply                                     # Stage 5 only
+```
+
+Success criteria: `output.ingress_ports == [22, 80, 443]` (8080 must never
+appear) and `output.instance_public_ip` is populated. A1 capacity is the usual
+failure: pin `availability_domain` to AD-2 rather than switching to a paid
+shape.
 
 ## Phase 3 — Content integrity
 
