@@ -214,7 +214,8 @@ credentials, SSH key and CIDRs.
 
 ### Deployment
 
-The repository is not published yet (Stage 8), so the tracked tree was transferred
+The repository was not published at deploy time (Stage 8 has since released it as
+`v1.0.0`), so the tracked tree was transferred
 rather than cloned: `git archive HEAD | ssh … tar -x` — 36 files, no `.git`, no
 `.env`, no `terraform.tfvars`.
 

@@ -5,6 +5,7 @@
 ![site](https://img.shields.io/badge/site-MkDocs%20Material%209.5-526CFE)
 ![iac](https://img.shields.io/badge/IaC-OpenTofu%20%E2%89%A5%201.6-FFDA18)
 ![verified](https://img.shields.io/badge/verified-OCI%20eu--frankfurt--1-FF5C39)
+[![release](https://img.shields.io/badge/release-v1.0.0-blue)](https://github.com/kaveh8866/Internal-Developer-Portal-Static-Docs/releases/tag/v1.0.0)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 A containerized internal developer portal: Markdown sources rendered by MkDocs
@@ -12,9 +13,12 @@ Material into static HTML at image build time, served by a hardened unprivileged
 Nginx on port 8080. One place for technical documentation, API specifications and
 the service catalog — with no database, no CMS and no runtime to patch.
 
-**Status: Stage 7 complete (security audit + documentation).** The portal was
-provisioned on OCI, verified from the public internet and then destroyed the same
-day, leaving **zero billable resources**. Delivery is Stage 8. Evidence:
+**Status: released — v1.0.0.** Public repository:
+<https://github.com/kaveh8866/Internal-Developer-Portal-Static-Docs> (default
+branch `main`, tag `v1.0.0`, MIT licensed, vault-certified `PORTABLE_CERTIFIED`
+100/100). The portal was provisioned on OCI, verified from the public internet
+and then destroyed the same day, leaving **zero billable resources** — this is a
+finished, published project, not a running service. Evidence:
 [`TEST_REPORT.md`](TEST_REPORT.md) §11 (live run) and
 [`TEARDOWN_REPORT.md`](TEARDOWN_REPORT.md) (zero-resource audit).
 
@@ -339,7 +343,7 @@ the column that actually decides the platform.
 | **5** | Live OCI deployment and verification | ✅ verified 2026-11-13 |
 | **6** | Teardown to zero burn rate | ✅ verified — 0 resources remain |
 | **7** | Security audit, cost table, final README | ✅ this document |
-| **8** | MIT license, publish to GitHub, vault certification | ⬜ remaining |
+| **8** | MIT license, publish to GitHub, vault certification | ✅ released — `v1.0.0` public, vault `PORTABLE_CERTIFIED` 100/100 |
 
 ## Documentation
 

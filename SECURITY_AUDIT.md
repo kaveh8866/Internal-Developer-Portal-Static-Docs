@@ -173,4 +173,5 @@ change behaviour without a commit.
 | Sources and metadata not served | ✅ 403 on `.md`, `.yml`, dotfiles |
 | Header coverage including errors | ✅ CSP + `nosniff` on 200/403/404 |
 
-Signed off for packaging (Stage 8) on the basis of the evidence above.
+Signed off for packaging (Stage 8), and published as `v1.0.0` on the basis of the
+evidence above.

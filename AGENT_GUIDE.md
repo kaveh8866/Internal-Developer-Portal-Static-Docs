@@ -29,7 +29,7 @@ this repository; the outputs quoted are real, not illustrative.
 | 5 — live OCI deploy + verification | 8 | ✅ verified 2026-11-13 — `TEST_REPORT.md` §11 (environment since destroyed) |
 | 6 — teardown, zero resources | 9 | ✅ verified 2026-11-13 — see `TEARDOWN_REPORT.md` |
 | 7 — security audit, cost table, final README | — | ✅ verified 2026-11-13 — `SECURITY_AUDIT.md` |
-| 8 — release + vault certification | 10 | ⬜ |
+| 8 — release + vault certification | 10 | ✅ released 2026-11-13 — `v1.0.0` public on GitHub, vault `PORTABLE_CERTIFIED` 100/100 |
 
 ---
 
