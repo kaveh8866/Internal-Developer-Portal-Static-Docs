@@ -27,7 +27,7 @@ this repository; the outputs quoted are real, not illustrative.
 | 3 — this guide + `MANUAL_PREREQS.md` | — | ✅ complete |
 | 4 — local drills (routing, headers, assets) | 0–6 | ✅ verified 2026-11-13 — see `TEST_REPORT.md` |
 | 5 — live OCI deploy + verification | 8 | ⬜ not started |
-| 6 — teardown, zero resources | 9 | ⬜ |
+| 6 — teardown, zero resources | 9 | ✅ verified 2026-11-13 — see `TEARDOWN_REPORT.md` |
 | 7 — security audit, cost table, final README | — | ⬜ |
 | 8 — release + vault certification | 10 | ⬜ |
 

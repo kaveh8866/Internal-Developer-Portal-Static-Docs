@@ -5,12 +5,12 @@ Material into static HTML, served by a hardened unprivileged Nginx. Built for
 engineering teams that need one trustworthy place for technical docs, API specs
 and the service catalog — without running a wiki, a database, or a CMS.
 
-**Status: Stage 5 complete — live on OCI.** The portal is deployed on an
-Ampere A1 instance in `eu-frankfurt-1` and answering HTTP 200 from the public
-internet at **<http://152.70.169.194/>**, with the routing, header and hardening
-behaviour verified on the real host. `TEST_REPORT.md` records what was measured;
-§11 covers the live run and its gaps (no TLS terminator yet, and the source CIDR
-is still open).
+**Status: Stage 6 complete — deployed, verified, destroyed.** The portal was
+provisioned on an Ampere A1 instance in `eu-frankfurt-1`, verified from the public
+internet (200 in 48 ms, CSP intact, 8080 unreachable), and then torn down the same
+day: **6 resources destroyed, zero remaining**, burn rate $0. Nothing is running
+now — the evidence lives in [`TEST_REPORT.md`](TEST_REPORT.md) §11 and
+[`TEARDOWN_REPORT.md`](TEARDOWN_REPORT.md).
 
 | | |
 | --- | --- |
@@ -20,9 +20,12 @@ is still open).
 | Hosting target | OCI Always Free `VM.Standard.A1.Flex` (1 OCPU / 1 GB), arm64 or x86 |
 | Provisioning | OpenTofu modules: VCN + A1.Flex instance + security list (22/80/443) |
 
-### Verified live deployment
+### Verified live deployment (destroyed in Stage 6)
 
-Provisioned and verified on 2026-11-13 (Stage 5):
+Provisioned and verified on 2026-11-13 (Stage 5). **The environment described
+here no longer exists** — this is the record of a run that was measured, not a
+host you can reach. Re-deploy with `tofu apply` (about 40 s) plus the compose
+command below.
 
 | | |
 | --- | --- |
@@ -137,7 +140,7 @@ layout. Compose lives in `docker/` next to the server block it references.
 | **3** | `AGENT_GUIDE.md` phases + operator prerequisites | ✅ complete |
 | **4** | Local drills: build, headers, 404/toxic paths, low-spec behaviour | ✅ verified — 200/200 under 0.1 CPU, strict build proven to fail on a dead link |
 | **5** | Live OCI deployment and verification | ✅ verified 2026-11-13 at `152.70.169.194` (48 ms first byte) |
-| **6** | Teardown to zero burn rate | ⬜ |
+| **6** | Teardown to zero burn rate | ✅ verified — 6 destroyed, provider confirms 0 remaining |
 | **7** | Security audit, cost table, final README | ⬜ |
 | **8** | MIT license, release, vault certification | ⬜ |
 
@@ -145,7 +148,8 @@ layout. Compose lives in `docker/` next to the server block it references.
 
 | Document | Audience |
 | --- | --- |
-| [`TEST_REPORT.md`](TEST_REPORT.md) | Measured local results: routing, headers, hardening, low-spec load, limitations |
+| [`TEST_REPORT.md`](TEST_REPORT.md) | Measured results: local drills, live OCI run (§11), and the gaps | 
+| [`TEARDOWN_REPORT.md`](TEARDOWN_REPORT.md) | Stage 6 audit: state at teardown, destroy transcript, provider-side zero proof |
 | [`MANUAL_PREREQS.md`](MANUAL_PREREQS.md) | Human operator: accounts, credentials, parameters, pre-flight and verification checklists |
 | [`AGENT_GUIDE.md`](AGENT_GUIDE.md) | Coding agents: phases 0–10, verified commands, hard limits, troubleshooting |
 | [`terraform/README.md`](terraform/README.md) | IaC layout, ingress contract, AWS/GCP mapping, capacity constraints |

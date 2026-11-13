@@ -279,3 +279,7 @@ the `rotate-signing-keys` runbook anchor, and 23 documents in the search index.
 - **Visual rendering** was still not reviewed in a browser; assertions are on
   status codes, headers and DOM markers.
 - **No load test against the live host** — the low-spec numbers in §6 are local.
+- **The environment was destroyed in Stage 6.** `tofu destroy` removed all six
+  resources; the provider confirms the instance `TERMINATED` and no VCN remains.
+  See [`TEARDOWN_REPORT.md`](TEARDOWN_REPORT.md). Nothing above is invalidated —
+  it is simply a record, not a running service.
