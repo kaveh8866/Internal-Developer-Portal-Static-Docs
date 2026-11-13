@@ -192,3 +192,90 @@ curl -s -o /dev/null -w '%{http_code}\n' $B/nope-xyz   # 404
 docker inspect cg-portal --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}}'
 docker stats --no-stream cg-portal
 ```
+
+---
+
+## 11. Live OCI deployment (Stage 5)
+
+Run against a real tenancy in `eu-frankfurt-1` on 2026-11-13. Infrastructure came
+from `terraform/` unmodified; only `terraform.tfvars` (gitignored) supplied the
+credentials, SSH key and CIDRs.
+
+### Provisioning
+
+| Step | Result |
+| --- | --- |
+| `tofu apply` | `Apply complete! Resources: 6 added` — VCN, IGW, route table, security list, subnet, instance |
+| Instance | created in **34 s** in AD-2 (AD-1 avoided from the Project 04 capacity lesson) |
+| Public IP | **152.70.169.194** |
+| Shape | `VM.Standard.A1.Flex`, 1 OCPU / 1 GB, Ubuntu 24.04, **aarch64** |
+| `cloud-init status` | `done`; Docker 29.9.3 |
+| Ingress | `tofu output ingress_ports` → `[22, 80, 443]` |
+
+### Deployment
+
+The repository is not published yet (Stage 8), so the tracked tree was transferred
+rather than cloned: `git archive HEAD | ssh … tar -x` — 36 files, no `.git`, no
+`.env`, no `terraform.tfvars`.
+
+| Step | Result |
+| --- | --- |
+| Build on aarch64 | **40 s** for build + start (deps are pure-Python wheels) |
+| Image | `arm64`, **79 MB** |
+| Container | `Up (healthy)`, `0.0.0.0:80->8080/tcp` |
+| `docker inspect` | `readonly=true`, `capdrop=[ALL]`, `user=101:101`, `mem=64 MiB` |
+| Host sockets | `22`, `80` only — **nothing on 8080**, nothing on 443 |
+
+### Live behaviour, measured from the public internet
+
+| Request | Code | Time |
+| --- | --- | --- |
+| `/` | 200 | 48.7 ms |
+| `/services/` | 200 | 47.9 ms |
+| `/api/` | 200 | 47.8 ms |
+| `/runbooks/` | 200 | 49.2 ms |
+| `/contributing/` | 200 | 49.5 ms |
+| `/services` | **301** → `/services/` | 31.7 ms |
+| `/assets/portal.css` | 200 | 32.3 ms |
+| `/assets/logo.svg` | 200 | 32.8 ms |
+| `/search/search_index.json` | 200 | 35.0 ms |
+| `/healthz` | 200 | 32.6 ms |
+| `/nope-xyz` | **404** | 34.6 ms |
+| `/.env` | **403** | 32.2 ms |
+| `/mkdocs.yml` | **403** | 32.0 ms |
+| `http://152.70.169.194:8080/` | **unreachable** (`000`) | — |
+
+Headers on `/` are identical to the local run: CSP, `nosniff`, `X-Frame-Options:
+DENY`, referrer and permissions policy. gzip unchanged at 17,488 → 4,663 B.
+Rendered markers verified on the live host: index title, 10 catalogue table rows,
+the `rotate-signing-keys` runbook anchor, and 23 documents in the search index.
+
+### Host footprint
+
+| Metric | Value |
+| --- | --- |
+| Container memory | **2.4 MiB / 64 MiB** (lower than the 12.6 MiB local run — arm64 idle Nginx with 2 pids) |
+| CPU | 0.00 % idle |
+| Rendered site | 55 files, 2.62 MB |
+| Host | 425 / 945 MB RAM, 44 G free disk |
+| Log lines | 50 total, 4 at error level — **all four are the deliberate `/.env` and `/mkdocs.yml` probes** |
+
+### What Stage 5 changed about earlier claims
+
+- **ARM is now verified.** §9 listed aarch64 as untested; the image builds and
+  runs correctly on Ampere, in 40 s.
+- **The security list is enforced, not just written.** 8080 is unreachable from
+  outside while 80 answers — the compose/port contract holds in the cloud.
+- **First-byte latency from the internet is ~48 ms**, which is dominated by
+  round-trip time to Frankfurt, not by Nginx (assets are 32 ms for the same
+  reason).
+
+### Still open after Stage 5
+
+- **TLS.** 443 is open but nothing listens; the page is served over plain HTTP.
+- **`web_allowed_cidr` is `0.0.0.0/0`.** The portal was left reachable so the run
+  could be verified end-to-end. For an internal portal this must be narrowed, or
+  the proxy added and 80 closed. This is the single most important follow-up.
+- **Visual rendering** was still not reviewed in a browser; assertions are on
+  status codes, headers and DOM markers.
+- **No load test against the live host** — the low-spec numbers in §6 are local.

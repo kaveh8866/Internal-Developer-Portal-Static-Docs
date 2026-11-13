@@ -5,12 +5,12 @@ Material into static HTML, served by a hardened unprivileged Nginx. Built for
 engineering teams that need one trustworthy place for technical docs, API specs
 and the service catalog — without running a wiki, a database, or a CMS.
 
-**Status: Stage 4 complete.** The portal builds and serves locally with measured
-evidence (Stage 1 + 4), the OCI infrastructure is written and `tofu plan`-verified
-(Stage 2, `6 to add`), and the playbooks are written against commands that were
-actually run (Stage 3). **Nothing is applied in the cloud** — no VCN, no
-instance, no URL, and no ARM/TLS verification yet. See
-[`TEST_REPORT.md`](TEST_REPORT.md) for what was measured and what was not.
+**Status: Stage 5 complete — live on OCI.** The portal is deployed on an
+Ampere A1 instance in `eu-frankfurt-1` and answering HTTP 200 from the public
+internet at **<http://152.70.169.194/>**, with the routing, header and hardening
+behaviour verified on the real host. `TEST_REPORT.md` records what was measured;
+§11 covers the live run and its gaps (no TLS terminator yet, and the source CIDR
+is still open).
 
 | | |
 | --- | --- |
@@ -19,6 +19,36 @@ instance, no URL, and no ARM/TLS verification yet. See
 | Container | read-only rootfs, `cap_drop: ALL`, `no-new-privileges`, 64 MiB / 0.25 CPU |
 | Hosting target | OCI Always Free `VM.Standard.A1.Flex` (1 OCPU / 1 GB), arm64 or x86 |
 | Provisioning | OpenTofu modules: VCN + A1.Flex instance + security list (22/80/443) |
+
+### Verified live deployment
+
+Provisioned and verified on 2026-11-13 (Stage 5):
+
+| | |
+| --- | --- |
+| Host | `152.70.169.194` — `VM.Standard.A1.Flex`, 1 OCPU / 1 GB, Ubuntu 24.04, **aarch64**, AD-2 |
+| Provisioning | `tofu apply`: **6 resources** (VCN, IGW, route table, security list, subnet, instance) — instance created in 34 s |
+| Ingress (security list) | 22 from the operator CIDR, 80 and 443 from `web_allowed_cidr`; **8080 closed and confirmed unreachable from outside** |
+| Runtime | Docker 29.9.3, arm64 image (79 MB), container **2.4 MiB / 64 MiB**, 2 pids |
+| Response (from the internet) | `GET /` → **200 in 48 ms**, assets 32 ms, gzip 17,488 → 4,663 B |
+| Routing on the real host | `/services` → **301** `/services/`, `/.env` → **403**, unknown path → **404**, `/healthz` → `ok` |
+
+```bash
+# redeploy from scratch
+cd terraform && tofu apply
+# then, on the host: git clone … ; cp .env.example .env
+#   PORTAL_BIND_ADDRESS=0.0.0.0  PORTAL_PORT=80  PORTAL_ENV=production
+#   docker compose --env-file .env -f docker/docker-compose.yml up -d --build
+
+# stop the spend (Stage 6)
+cd terraform && tofu destroy -auto-approve
+```
+
+!!! warning "Internal portal, currently publicly reachable"
+    `web_allowed_cidr` was left at `0.0.0.0/0` so the deployment could be
+    verified end-to-end. That makes an *internal* portal answer on the public
+    internet over plain HTTP. Narrow it to the office/VPN range, or put the
+    proxy in front and close 80, before anyone treats this as production.
 
 ---
 
@@ -106,7 +136,7 @@ layout. Compose lives in `docker/` next to the server block it references.
 | **2** | OpenTofu: VCN, A1.Flex compute, security list (8080 closed) | ✅ written, `validate` + `plan` clean, not applied |
 | **3** | `AGENT_GUIDE.md` phases + operator prerequisites | ✅ complete |
 | **4** | Local drills: build, headers, 404/toxic paths, low-spec behaviour | ✅ verified — 200/200 under 0.1 CPU, strict build proven to fail on a dead link |
-| **5** | Live OCI deployment and verification | ⬜ |
+| **5** | Live OCI deployment and verification | ✅ verified 2026-11-13 at `152.70.169.194` (48 ms first byte) |
 | **6** | Teardown to zero burn rate | ⬜ |
 | **7** | Security audit, cost table, final README | ⬜ |
 | **8** | MIT license, release, vault certification | ⬜ |
